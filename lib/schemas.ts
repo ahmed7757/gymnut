@@ -63,7 +63,7 @@ export const mealLogSchema = z.object({
   fiber: z.number().min(0).optional(),
   sugar: z.number().min(0).optional(),
   sodium: z.number().min(0).optional(),
-  foodData: z.record(z.any()).optional(),
+  foodData: z.record(z.string(), z.any()).optional(),
 });
 
 export const workoutSchema = z.object({

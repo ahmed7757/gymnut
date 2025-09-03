@@ -9,29 +9,36 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { plan, dietType, mealDays } = await req.json();
+        const body = await req.json();
+        const dietType = typeof body?.dietType === "string" ? body.dietType : "balanced";
+        const mealDaysFromBody = typeof body?.mealDays === "number" ? body.mealDays : undefined;
 
-        if (!plan || !Array.isArray(plan.mealPlan)) {
+        // Accept both shapes: { plan: { mealPlan: [...] } } OR { mealPlan: [...] }
+        const incomingPlan = body?.plan?.mealPlan ? body.plan : { mealPlan: body?.mealPlan };
+
+        if (!incomingPlan || !Array.isArray(incomingPlan.mealPlan)) {
             return NextResponse.json({ message: "Valid meal plan is required" }, { status: 400 });
         }
+
+        const mealDays = mealDaysFromBody ?? incomingPlan.mealPlan.length;
 
         const mealPlan = await prisma.mealPlan.create({
             data: {
                 userId: session.user.id as string,
                 plan: {
-                    ...plan,
+                    ...incomingPlan,
                     metadata: {
-                        dietType: dietType || "balanced",
-                        mealDays: mealDays || plan.mealPlan.length,
+                        dietType,
+                        mealDays,
                         generatedAt: new Date().toISOString()
                     }
                 }
             },
         });
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             message: "Meal plan saved successfully",
-            plan: mealPlan 
+            plan: mealPlan
         }, { status: 201 });
     } catch (error) {
         console.error("Save meal plan error:", error);
@@ -60,11 +67,11 @@ export async function GET(req: NextRequest) {
                     updatedAt: true
                 }
             });
-            
+
             if (!plan) {
                 return NextResponse.json({ message: "No meal plans found" }, { status: 404 });
             }
-            
+
             return NextResponse.json(plan, { status: 200 });
         }
 
