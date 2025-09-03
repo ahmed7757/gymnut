@@ -8,9 +8,9 @@ export class TokenService {
         return process.env.JWT_SECRET as string;
     }
 
-    static createResetToken(userId: string, expiresIn: string = "1h") {
+    static createResetToken(userId: string, expiresInSeconds: number = 3600) {
         const secret = this.ensureSecret();
-        return jwt.sign({ userId }, secret, { expiresIn });
+        return jwt.sign({ userId }, secret, { expiresIn: expiresInSeconds });
     }
 
     static verifyToken<T = any>(token: string) {

@@ -56,7 +56,7 @@ export async function handleForgotPassword(req: NextRequest) {
             return createNotFoundResponse("User not found");
         }
 
-        const resetToken = TokenService.createResetToken(user.id, "1h");
+        const resetToken = TokenService.createResetToken(user.id, 3600);
         const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
         await UserService.updateResetToken(body.email, resetToken, expiresAt);
 
