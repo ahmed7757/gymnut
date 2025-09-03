@@ -1,67 +1,70 @@
-import { NextRequest, NextResponse } from "next/server"
-import nodemailer from "nodemailer"
-import prisma from "@/lib/prisma"
-import jwt from "jsonwebtoken"
+import { NextRequest } from "next/server";
+import nodemailer from "nodemailer";
+import jwt from "jsonwebtoken";
+import {
+  createApiResponse,
+  createErrorResponse,
+  createValidationErrorResponse,
+  createNotFoundResponse,
+} from "@/lib/api";
+import { UserService } from "@/lib/database";
 
 export async function POST(req: NextRequest) {
-    try {
-        console.log("=== FORGOT PASSWORD REQUEST RECEIVED ===");
-        const body = await req.json();
-        console.log("Request body:", body);
-        console.log("Email from request:", body?.email);
+  try {
+    const body = await req.json();
 
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.AUTH_GOOGLE_EMAIL,
-                pass: process.env.AUTH_GOOGLE_APP,
-            }
-        })
+    if (!body.email) {
+      return createValidationErrorResponse(
+        [{ field: "email", message: "Email is required" }],
+        "Email is required"
+      );
+    }
 
-        if (!body.email) {
-            console.log("Error: Email is missing in request");
-            return NextResponse.json({
-                message: "Email is required",
-                success: false
-            }, { status: 400 });
-        }
+    const user = await UserService.findByEmail(body.email);
 
-        console.log("Looking for user with email:", body.email);
-        const user = await prisma.user.findUnique({
-            where: { email: body.email }
-        })
-        if (!user) {
-            console.log(`No user found with email: ${body.email}`);
-            return NextResponse.json({ message: "User not found", success: false }, { status: 404 });
-        }
+    if (!user) {
+      return createNotFoundResponse("User not found");
+    }
 
-        console.log(`User found: ${user.name} (${user.email})`);
-        if (!process.env.JWT_SECRET) {
-            console.log("Error: JWT_SECRET is not set");
-            return NextResponse.json({ message: "Internal server error", success: false }, { status: 500 });
-        }
-        const resetToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    if (!process.env.JWT_SECRET) {
+      return createErrorResponse(
+        new Error("JWT_SECRET is not configured"),
+        500
+      );
+    }
 
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { resetToken, resetTokenExpires: new Date(Date.now() + 1000 * 60 * 60) }
-        })
-        const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
+    const resetToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
 
-        const mailOptions = await transporter.sendMail({
-            from: process.env.AUTH_GOOGLE_EMAIL,
-            to: user.email,
-            subject: "Reset Password",
-            text: `Click the link below to reset your password: ${resetUrl}`,
-            html: `
+    await UserService.updateResetToken(body.email, resetToken, expiresAt);
+
+    const resetUrl = `${
+      process.env.NEXT_PUBLIC_APP_URL
+    }/reset-password?token=${encodeURIComponent(resetToken)}`;
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.AUTH_GOOGLE_EMAIL,
+        pass: process.env.AUTH_GOOGLE_APP,
+      },
+    });
+
+    const mailOptions = await transporter.sendMail({
+      from: process.env.AUTH_GOOGLE_EMAIL,
+      to: user.email,
+      subject: "Reset Password",
+      text: `Click the link below to reset your password: ${resetUrl}`,
+      html: `
             <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <style>
-                /* Some email clients support media queries */
                 @media only screen and (max-width: 600px) {
                     .email-container {
                     width: 100% !important;
@@ -111,7 +114,7 @@ export async function POST(req: NextRequest) {
                             
                             <p>This link will expire in <strong>1 hour</strong>.</p>
                             <p>If you did not request this, you can safely ignore this message.</p>
-                            <p style="margin-top: 20px;">If the button doesn’t work, copy and paste this link into your browser:</p>
+                            <p style="margin-top: 20px;">If the button doesn't work, copy and paste this link into your browser:</p>
                             <p style="word-wrap: break-word; color: #4CAF50;">${resetUrl}</p>
                         </td>
                         </tr>
@@ -130,17 +133,13 @@ export async function POST(req: NextRequest) {
             </body>
             </html>
             `,
-        })
+    });
 
-        console.log("Email sent successfully");
-        return NextResponse.json({ message: "Password reset email sent", success: true }, { status: 200 });
-
-    } catch (error) {
-        console.error("=== ERROR IN FORGOT PASSWORD FUNCTION ===");
-        console.error("Error sending email:", error);
-        console.error("Error details:", error instanceof Error ? error.message : String(error));
-        return NextResponse.json({ message: "Error sending email", success: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
-    } finally {
-        console.log("=== FORGOT PASSWORD REQUEST PROCESSING COMPLETED ===");
-    }
+    return createApiResponse(
+      { email: user.email },
+      "Password reset email sent successfully"
+    );
+  } catch (error) {
+    return createErrorResponse(error);
+  }
 }
