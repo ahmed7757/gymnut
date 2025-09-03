@@ -1,40 +1,41 @@
-import { signSchema } from "@/lib/zod";
-import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { registerSchema } from "@/lib/schemas";
+import { NextRequest } from "next/server";
 import { hashPassword } from "@/utils/password";
 import { Gender } from "@prisma/client";
+import {
+  createApiResponse,
+  createErrorResponse,
+  createValidationErrorResponse,
+} from "@/lib/api";
+import { UserService } from "@/lib/database";
 
 export async function POST(req: NextRequest) {
-    try {
-        const body = await req.json();
-        const parsed = signSchema.safeParse(body);
-        if (!parsed.success) {
-            return NextResponse.json({ message: "Invalid input", errors: parsed.error.issues }, { status: 400 });
-        }
-        const { email, password, name, gender } = parsed.data;
+  try {
+    const body = await req.json();
+    const parsed = registerSchema.safeParse(body);
 
-        // Check if user already exists
-        const existing = await prisma.user.findUnique({ where: { email } });
-        if (existing) {
-            return NextResponse.json({ message: "Email already registered" }, { status: 400 });
-        }
-
-        // Hash password
-        const hashedPassword = await hashPassword(password);
-
-        // Create user
-        await prisma.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                name,
-                gender: Gender.MALE || Gender.FEMALE,
-            },
-        });
-
-        return NextResponse.json({ message: "Registration successful" }, { status: 201 });
-    } catch (error) {
-        console.error("Registration error:", error);
-        return NextResponse.json({ message: "Server error" }, { status: 500 });
+    if (!parsed.success) {
+      return createValidationErrorResponse(
+        parsed.error.issues,
+        "Invalid input data"
+      );
     }
+
+    const { email, password, name, gender } = parsed.data;
+
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
+    // Create user using service
+    const user = await UserService.create({
+      email,
+      password: hashedPassword,
+      name,
+      gender: gender as Gender,
+    });
+
+    return createApiResponse(user, "Registration successful", 201);
+  } catch (error) {
+    return createErrorResponse(error);
+  }
 }
