@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getMeals, logMeal } from "@/app/api/_controllers/meals.controller";
+import { getMeals, logMeal } from "../_controllers/meals.controller";
 export async function POST(req: NextRequest) {
     return logMeal(req);
 }

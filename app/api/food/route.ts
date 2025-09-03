@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { handleFoodSearch } from "@/app/api/_controllers/food.controller";
+import { handleFoodSearch } from "../_controllers/food.controller";
 
 export async function GET(req: NextRequest) {
     return handleFoodSearch(req);
