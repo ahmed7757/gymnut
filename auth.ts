@@ -21,18 +21,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       authorize: async (credentials) => {
         try {
+          console.log("Auth attempt for:", credentials?.email);
           const { email, password } = await loginSchema.parseAsync(credentials);
 
           // 1- check if user exists
           const user = await prisma.user.findUnique({ where: { email } });
+          console.log("User found:", !!user);
           if (!user) return null;
 
           // 2- compare password
           if (!user.password || typeof user.password !== "string") return null;
+          console.log("Password exists:", !!user.password);
           const isValid = await comparePassword(password, user.password);
+          console.log("Password valid:", isValid);
           if (!isValid) return null;
 
           // 3- return user object (without password)
+          console.log("Auth successful for:", user.email);
           return {
             id: user.id,
             name: user.name,
