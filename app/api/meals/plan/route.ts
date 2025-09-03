@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
 
-        const { fitnessGoal = "LOSE", dietType = "balanced", mealDays = 7 } = await req.json();
+        const { dietType = "balanced", mealDays = 7 } = await req.json();
         // Build the AI prompt
         const prompt = `
 You are an AI nutritionist. Create a personalized ${mealDays}-day meal plan for the user.
@@ -46,7 +46,7 @@ Meal Plan Requirements:
 Requirements:
 - Output MUST be valid JSON only. No markdown fences or commentary.
 - Follow this structure strictly.
-}`;
+`;
 
         // Call Gemini with structured output
         const response = await ai.models.generateContent({
@@ -92,16 +92,16 @@ Requirements:
         // Prefer parsed; fallback to text
         const parsed = (response as any).parsed;
         const text = response.text || "";
-        const workoutPlan = parsed ?? (text ? JSON.parse(text) : null);
+        const mealPlan = parsed ?? (text ? JSON.parse(text) : null);
 
-        if (!workoutPlan || !Array.isArray(workoutPlan.plan) || workoutPlan.plan.length === 0) {
+        if (!mealPlan || !Array.isArray(mealPlan.mealPlan) || mealPlan.mealPlan.length === 0) {
             return NextResponse.json(
                 { message: "AI returned empty/invalid plan", raw: text },
                 { status: 500 }
             );
         }
 
-        return NextResponse.json(workoutPlan, { status: 200 });
+        return NextResponse.json(mealPlan, { status: 200 });
     } catch (error) {
         console.error("AI meal Plan error:", error);
         return NextResponse.json(

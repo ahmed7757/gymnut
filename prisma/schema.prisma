@@ -27,6 +27,7 @@ model User {
   image          String?
   meals          MealLog[]
   workouts       Workout[]
+  mealPlans      MealPlan[]
   accounts       Account[] // <-- Add this
   sessions       Session[]
   resetToken     String?
@@ -61,6 +62,18 @@ model MealLog {
 }
 
 model Workout {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  plan      Json
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([userId, createdAt])
+}
+
+model MealPlan {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id])
