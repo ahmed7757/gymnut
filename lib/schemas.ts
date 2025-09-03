@@ -48,6 +48,7 @@ export const updateProfileSchema = z.object({
       z.enum(["DIABETES", "HYPERTENSION", "HEART_DISEASE", "ASTHMA", "NONE"])
     )
     .optional(),
+  image: z.string().url().optional(),
 });
 
 export const mealLogSchema = z.object({
