@@ -17,22 +17,36 @@ import Link from "next/link";
 import { useLoginStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks/useAuth";
 import { FormInput, ErrorMessage } from "@/components/ui/FormInput";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { loginSchema } from "@/lib/schemas";
 
 const Login = () => {
   const {
-    email,
-    password,
     error,
     loading,
     remember,
     showPassword,
-    setEmail,
-    setPassword,
     setError,
     setLoading,
     setRemember,
     setShowPassword,
   } = useLoginStore();
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isValid },
+  } = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    mode: "onChange",
+    defaultValues: { email: "", password: "" },
+  });
+
+  const emailValue = watch("email");
+  const passwordValue = watch("password");
 
   const {
     handleAuthError,
@@ -41,19 +55,11 @@ const Login = () => {
     router,
   } = useAuth();
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!email || !password) {
-      setError("Please fill in all fields");
-      return;
-    }
-
+  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
     try {
       setLoading(true);
       setError("");
-
-      await handleCredentialsSignIn(email, password);
+      await handleCredentialsSignIn(data.email, data.password);
       router.replace("/");
     } catch (err: any) {
       setError(handleAuthError(err));
@@ -104,7 +110,7 @@ const Login = () => {
             </div>
           )}
 
-          <form onSubmit={onSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email */}
             <div className="space-y-2">
               <Label
@@ -117,11 +123,12 @@ const Login = () => {
                 id="email"
                 type="email"
                 placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                error={errors.email?.message}
+                value={emailValue || ""}
+                {...register("email")}
                 className="focus:ring-2 focus:ring-green-500 focus:border-green-500 border-gray-200"
-                required
               />
+              <ErrorMessage message={errors.email?.message} />
             </div>
 
             {/* Password */}
@@ -136,13 +143,14 @@ const Login = () => {
                 id="password"
                 type="password"
                 placeholder="Enter your password"
-                value={password}
                 showPassword={showPassword}
                 onTogglePassword={() => setShowPassword(!showPassword)}
-                onChange={(e) => setPassword(e.target.value)}
+                error={errors.password?.message}
+                value={passwordValue || ""}
+                {...register("password")}
                 className="focus:ring-2 focus:ring-green-500 focus:border-green-500 border-gray-200"
-                required
               />
+              <ErrorMessage message={errors.password?.message} />
             </div>
 
             {/* Remember Me & Forgot Password */}
@@ -173,7 +181,7 @@ const Login = () => {
             <Button
               type="submit"
               className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-              disabled={loading || !email || !password}
+              disabled={loading || !isValid}
             >
               {loading ? (
                 <div className="flex items-center gap-2">
