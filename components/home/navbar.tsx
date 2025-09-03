@@ -22,11 +22,10 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrollY > 50
-          ? "bg-white/95 backdrop-blur-lg shadow-xl border-b border-green-100/50"
-          : "bg-transparent"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrollY > 50
+        ? "bg-white/95 backdrop-blur-lg shadow-xl border-b border-green-100/50"
+        : "bg-transparent"
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-20">
@@ -66,9 +65,11 @@ export default function Navbar() {
                 Login
               </Button>
             </Link>
-            <Button className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
-              Register
-            </Button>
+            <Link href={"/register"}>
+              <Button className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+                Register
+              </Button>
+            </Link>
           </div>
 
           <button
@@ -110,9 +111,11 @@ export default function Navbar() {
               >
                 Login
               </Button>
-              <Button className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white">
-                Register
-              </Button>
+              <Link href={"/register"}>
+                <Button className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white">
+                  Register
+                </Button>
+              </Link>
             </div>
           </div>
         )}
