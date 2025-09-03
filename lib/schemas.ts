@@ -5,7 +5,7 @@ import { emailSchema, passwordSchema, nameSchema } from "./validation";
 export const registerSchema = z
   .object({
     name: nameSchema,
-    gender: z.enum(["male", "female"], {
+    gender: z.enum(["MALE", "FEMALE"], {
       message: "Please select a valid gender",
     }),
     email: emailSchema,
