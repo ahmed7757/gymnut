@@ -40,6 +40,7 @@ export const useRegisterStore = create<
   showPassword: false,
   showConfirmPassword: false,
   passwordFocused: false,
+  remember: false,
   setEmail: (email) => set({ email }),
   setPassword: (password) => set({ password }),
   setName: (name) => set({ name }),
@@ -51,6 +52,7 @@ export const useRegisterStore = create<
   setShowPassword: (showPassword) => set({ showPassword }),
   setShowConfirmPassword: (showConfirmPassword) => set({ showConfirmPassword }),
   setPasswordFocused: (passwordFocused) => set({ passwordFocused }),
+  setRemember: (remember) => set({ remember }),
 }));
 
 export const useForgotPasswordStore = create<
