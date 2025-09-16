@@ -65,33 +65,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
-      // If user is signing in and has remember flag, set longer expiration
-      if (user && trigger === "signIn") {
-        const remember = (user as any).remember;
-        if (remember) {
-          // Set to 30 days for remember me
-          token.maxAge = 30 * 24 * 60 * 60; // 30 days
-        } else {
-          // Set to 1 day for normal login
-          token.maxAge = 24 * 60 * 60; // 1 day
-        }
-      }
+      // Debug logging
+      console.log(`[JWT Callback] Trigger: ${trigger}, User: ${user ? 'exists' : 'null'}, Token: ${token ? 'exists' : 'null'}`);
 
+      // If user is signing in, add user info to token
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        console.log(`[JWT Callback] Added user info to token:`, { id: user.id, email: user.email });
       }
+
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token?.id) {
+      console.log(`[Session Callback] Token: ${token ? 'exists' : 'null'}, Session: ${session ? 'exists' : 'null'}`);
+
+      if (session.user && token) {
         session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        console.log(`[Session Callback] Session populated with user:`, { id: token.id, email: token.email });
       }
       return session;
     },
   },
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
