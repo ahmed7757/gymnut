@@ -4,7 +4,6 @@ import { getSavedWorkoutPlans, saveWorkoutPlan } from "../../_controllers/workou
 export async function POST(req: NextRequest) {
     return saveWorkoutPlan(req);
 }
-
 export async function GET(req: NextRequest) {
     return getSavedWorkoutPlans(req);
 }

@@ -18,6 +18,7 @@ model User {
   password       String?
   name           String?
   gender         Gender    @default(MALE)
+  location       String    @default("Egypt")
   emailVerified  DateTime?
   height         Float?
   weight         Float?
@@ -34,6 +35,12 @@ model User {
   resetTokenExpires DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  // Performance indexes
+  @@index([email])
+  @@index([createdAt])
+  @@index([goal])
+  @@index([resetToken])
 }
 
 model MealLog {
@@ -58,19 +65,27 @@ model MealLog {
   updatedAt DateTime     @updatedAt
   deletedAt DateTime?
 
+  // Performance indexes
   @@index([userId, loggedAt])
+  @@index([userId, category])
+  @@index([loggedAt])
+  @@index([deletedAt])
 }
 
 model Workout {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id])
+  method    String?
   plan      Json
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  // Performance indexes
   @@index([userId, createdAt])
+  @@index([method])
+  @@index([deletedAt])
 }
 
 model MealPlan {
@@ -82,7 +97,9 @@ model MealPlan {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  // Performance indexes
   @@index([userId, createdAt])
+  @@index([deletedAt])
 }
 
 enum Goal {
@@ -105,6 +122,7 @@ enum MealCategory {
   DINNER
   SNACK
 }
+
 
 model Account {
   id                String  @id @default(cuid())

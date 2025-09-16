@@ -40,29 +40,58 @@ export async function generateWorkoutPlan(req: NextRequest) {
 
         let fitnessLevel = "beginner";
         let workoutDays = 5;
+        let method = "Push/Pull/Legs (PPL) Split";
         try {
             const body = await req.json();
             if (body && typeof body === "object") {
                 if (typeof body.fitnessLevel === "string") fitnessLevel = body.fitnessLevel;
                 if (typeof body.workoutDays === "number") workoutDays = body.workoutDays;
+                if (typeof body.method === "string") method = body.method;
             }
         } catch { }
 
         const prompt = `
-You are an AI personal trainer. Generate a personalized ${workoutDays}-day workout plan for a user.
+You are an AI personal trainer and certified sports nutritionist. Your goal is to generate a comprehensive, personalized workout and nutritional plan.
 
-User Profile:
+### Instructions
+1.  **Analyze the User Profile and Constraints:** Carefully review the user's details, including their age, gender, location, and specific goals. Note any health conditions or limitations.
+2.  **Generate a Workout Plan:** Create a ${workoutDays}-day workout plan based on the user's fitness level, preferred method, and goals. Each day should include warm-ups, exercises with sets/reps/duration, and cool-downs.
+3.  **Generate a Nutritional Guidance:** Provide a short nutritional guidance section (3-5 sentences) tailored to the user's goals and regional context (e.g., local food availability in Egypt). Do not provide a full meal plan; offer general advice on macronutrients, hydration, and common foods.
+4.  **Prioritize Safety:** Ensure all recommendations are safe and appropriate for the user's stated diseases or conditions. If a plan is not feasible due to a condition, state this clearly.
+5.  **Strict Output Format:** The entire response MUST be a single, valid JSON object. Do not include any text, markdown, or commentary outside of the JSON. The JSON structure is strictly defined by the provided schema.
+
+### User Profile
 - Age: ${user.age ?? "unknown"}
 - Gender: ${user.gender ?? "unknown"}
 - Height: ${user.height ?? "unknown"} cm
 - Weight: ${user.weight ?? "unknown"} kg
 - Goal: ${user.goal}
+- Preferred method: ${method}
 - Diseases/conditions: ${user.diseases.length > 0 ? user.diseases.join(", ") : "none"}
 - Fitness Level: ${fitnessLevel}
+- **Location/Culture:** ${user.location ?? "global"}
 
-Requirements:
-- Output MUST be valid JSON only. No markdown fences or commentary.
-- Follow this structure strictly.
+### Output Schema
+${JSON.stringify({
+            plan: [
+                {
+                    day: "Monday",
+                    type: "Push",
+                    duration: 60,
+                    exercises: [
+                        {
+                            name: "Example Exercise",
+                            sets: 3,
+                            reps: 10,
+                            duration: ""
+                        }
+                    ],
+                    warmup: "Example warm-up routine.",
+                    cooldown: "Example cool-down routine."
+                }
+            ],
+            nutritionalGuidance: "Tailored nutritional advice."
+        }, null, 2)}
 `;
 
         async function generate(model: string) {
@@ -177,6 +206,7 @@ export async function saveWorkoutPlan(req: NextRequest) {
         const workoutPlan = await prisma.workout.create({
             data: {
                 userId: session.user.id as string,
+                method: "Push/Pull/Legs (PPL) Split", // or set this dynamically if needed
                 plan: {
                     ...normalizedPlan,
                     metadata: {

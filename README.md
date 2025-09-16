@@ -1,18 +1,48 @@
----
-
 # 🏋️‍♂️ GymNut – AI-Powered Fitness & Nutrition Tracker
 
 **GymNut** is a modern, scalable web application that helps users track their meals, workouts, and progress while receiving **AI-powered personalized advice** on nutrition, fitness, and healthy habits.
 
 ## 🚀 Features
 
+### 🔐 Authentication & Security
 - ✅ **Advanced Authentication** – Secure user registration, login, and password reset with email verification
+- ✅ **Password Reset System** – Email-based password recovery with JWT tokens
+- ✅ **Session Management** – Secure session handling with Auth.js
+- ✅ **Input Validation** – Comprehensive Zod-based validation for all endpoints
+
+### 👤 User Management
 - ✅ **User Profiles** – Comprehensive health profiles with age, height, weight, fitness goals, and medical conditions
-- ✅ **Meal Tracking** – Search and log meals with automatic nutrition calculation
-- ✅ **Workout Tracking** – Log workouts and generate AI-powered workout plans
-- ✅ **AI Advisor** – Personalized recommendations based on user profile and activity logs
-- ✅ **Progress Analytics** – Visual dashboards for calories, macros, and training consistency
-- ✅ **Responsive Design** – Modern, mobile-first UI with smooth animations
+- ✅ **Profile Image Upload** – Cloudinary integration for secure image storage
+- ✅ **Location Support** – Regional customization for meal and workout recommendations
+- ✅ **Medical Conditions** – Support for diabetes, hypertension, heart disease, and asthma
+
+### 🍽️ Meal & Nutrition
+- ✅ **Food Search** – Integration with Open Food Facts API for comprehensive food database
+- ✅ **Meal Logging** – Track meals with detailed nutrition information (calories, macros, micronutrients)
+- ✅ **AI Meal Planning** – Google Gemini-powered personalized meal plans with cultural adaptation
+- ✅ **Meal Categories** – Breakfast, lunch, dinner, and snack categorization
+- ✅ **Nutrition Tracking** – Complete macro and micronutrient tracking
+
+### 💪 Workout & Fitness
+- ✅ **AI Workout Plans** – Google Gemini-generated personalized workout routines
+- ✅ **Multiple Training Methods** – Support for various workout splits (PPL, Upper/Lower, etc.)
+- ✅ **Fitness Level Adaptation** – Beginner to advanced workout customization
+- ✅ **Workout History** – Save and retrieve previous workout plans
+- ✅ **Exercise Tracking** – Detailed exercise logging with sets, reps, and duration
+
+### 🤖 AI Integration
+- ✅ **Google Gemini AI** – Advanced AI recommendations for nutrition and fitness
+- ✅ **Cultural Adaptation** – Region-specific meal and workout recommendations
+- ✅ **Health-Conscious Planning** – AI considers medical conditions and dietary restrictions
+- ✅ **Retry Logic** – Robust error handling with fallback models
+
+### 🏗️ Backend Architecture
+- ✅ **Service Layer Pattern** – Clean separation of concerns with dedicated service classes
+- ✅ **Database Abstraction** – Prisma-based data access with type safety
+- ✅ **Error Handling** – Centralized error management with custom error classes
+- ✅ **API Standardization** – Consistent response formats across all endpoints
+- ✅ **Email Service** – Professional HTML email templates for notifications
+- ✅ **Image Processing** – Cloudinary integration for secure file uploads
 
 ## 🛠 Tech Stack
 
@@ -30,9 +60,10 @@
 - **[Zod](https://zod.dev/)** - TypeScript-first schema validation
 
 ### AI & External Services
-- **[Google Gemini API](https://ai.google.dev/)** - AI-powered recommendations
+- **[Google Gemini API](https://ai.google.dev/)** - AI-powered recommendations with retry logic
 - **[Open Food Facts API](https://world.openfoodfacts.org/data)** - Comprehensive food database
-- **[Nodemailer](https://nodemailer.com/)** - Email service for notifications
+- **[Cloudinary](https://cloudinary.com/)** - Image upload and processing service
+- **[Nodemailer](https://nodemailer.com/)** - Professional HTML email service for notifications
 
 ## 📂 Project Structure
 
@@ -53,15 +84,19 @@ gymnut/
 │   ├── ui/                       # Base UI components (shadcn/ui)
 │   └── home/                     # Landing page components
 ├── lib/                          # Core utilities and services
-│   ├── api.ts                    # API response utilities
+│   ├── api.ts                    # Standardized API response utilities
 │   ├── auth.ts                   # Authentication service
-│   ├── constants.ts              # App configuration
-│   ├── database.ts               # Database service layer
-│   ├── errors.ts                 # Error handling utilities
-│   ├── prisma.ts                 # Prisma client
-│   ├── schemas.ts                # Zod validation schemas
-│   ├── utils.ts                  # General utilities
-│   └── validation.ts             # Validation helpers
+│   ├── constants.ts              # App configuration and constants
+│   ├── database.ts               # Service layer (UserService, MealService, WorkoutService)
+│   ├── errors.ts                 # Custom error classes and handling
+│   ├── prisma.ts                 # Prisma client configuration
+│   ├── schemas.ts                # Comprehensive Zod validation schemas
+│   ├── utils.ts                  # General utility functions
+│   ├── validation.ts             # Reusable validation helpers
+│   └── services/                 # External service integrations
+│       ├── cloudinary.ts         # Image upload service
+│       ├── email.ts              # Email service with HTML templates
+│       └── tokens.ts             # JWT token management
 ├── hooks/                        # Custom React hooks
 │   └── useAuth.ts                # Authentication and password strength hooks
 ├── stores/                       # State management
@@ -86,6 +121,8 @@ model User {
   password       String?
   name           String?
   gender         Gender    @default(MALE)
+  location       String    @default("Egypt")
+  emailVerified  DateTime?
   height         Float?
   weight         Float?
   goal           Goal      @default(MAINTAIN)
@@ -109,31 +146,50 @@ model MealLog {
   id        String       @id @default(cuid())
   userId    String
   user      User         @relation(fields: [userId], references: [id])
-  foodName  String
-  foodImage String?
+  foodData  Json         // cached from external API
   category  MealCategory @default(LUNCH)
-  quantity  Float?
+  quantity  Float?       // in grams
+  foodName  String       // "Grilled Chicken Breast"
+  foodImage String?      // snapshot of image URL
+  foodBrand String?      // e.g., "Trader Joe's" (optional)
+  portion   String?
   calories  Float
   protein   Float
   carbs     Float
   fat       Float
-  fiber     Float?
-  sugar     Float?
-  sodium    Float?
-  foodData  Json
+  fiber     Float?       // optional, extra
+  sugar     Float?       // optional, extra
+  sodium    Float? 
   loggedAt  DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   deletedAt DateTime?
+
+  @@index([userId, loggedAt])
 }
 
 model Workout {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id])
-  plan      Json
+  method    String?   // e.g., "Push/Pull/Legs (PPL) Split"
+  plan      Json      // AI-generated workout plan with exercises
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  @@index([userId, createdAt])
+}
+
+model MealPlan {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  plan      Json      // AI-generated meal plan
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([userId, createdAt])
 }
 ```
 
@@ -141,28 +197,44 @@ model Workout {
 
 ### 1. **Service Layer Pattern**
 - Centralized database operations in `lib/database.ts`
-- Clean separation of concerns with dedicated service classes
-- Consistent error handling and response formatting
+- Dedicated service classes: `UserService`, `MealService`, `WorkoutService`, `MealPlanService`
+- Clean separation of concerns with consistent error handling
+- Type-safe database operations with Prisma
 
 ### 2. **Advanced Error Handling**
-- Custom error classes with proper HTTP status codes
-- Centralized error handling utilities
-- Type-safe error responses
+- Custom error classes (`NotFoundError`, `ConflictError`) with proper HTTP status codes
+- Centralized error handling utilities in `lib/errors.ts`
+- Type-safe error responses with standardized formats
+- Comprehensive error logging and debugging support
 
 ### 3. **Validation System**
-- Zod schemas for runtime type validation
-- Reusable validation patterns and helpers
+- Comprehensive Zod schemas for runtime type validation
+- Reusable validation patterns and helpers in `lib/validation.ts`
 - Consistent error messages across the application
+- Form validation with React Hook Form integration
 
 ### 4. **API Response Standardization**
-- Consistent API response format
-- Proper HTTP status codes
+- Consistent API response format with `createApiResponse()` utility
+- Proper HTTP status codes and error handling
 - Type-safe response interfaces
+- Standardized success and error response structures
 
-### 5. **State Management**
+### 5. **AI Integration Architecture**
+- Google Gemini API integration with retry logic and fallback models
+- Structured AI prompts for consistent output
+- Cultural and regional adaptation for meal and workout plans
+- Health-conscious AI recommendations based on user conditions
+
+### 6. **External Service Integration**
+- Cloudinary integration for secure image uploads
+- Professional HTML email templates with Nodemailer
+- Open Food Facts API for comprehensive food database
+- JWT token management for secure authentication
+
+### 7. **State Management**
 - Zustand for lightweight, performant state management
 - Type-safe store interfaces
-- Clean separation of concerns
+- Clean separation of concerns between UI and business logic
 
 ## 🚀 Getting Started
 
@@ -199,10 +271,18 @@ model Workout {
    GOOGLE_CLIENT_ID="your-google-client-id"
    GOOGLE_CLIENT_SECRET="your-google-client-secret"
    
-   # Email
+   # Email Service
    AUTH_GOOGLE_EMAIL="your-email@gmail.com"
    AUTH_GOOGLE_APP="your-app-password"
    JWT_SECRET="your-jwt-secret"
+   
+   # AI Services
+   GEMINI_API_KEY="your-google-gemini-api-key"
+   
+   # Image Upload
+   CLOUDINARY_CLOUD_NAME="your-cloudinary-cloud-name"
+   CLOUDINARY_API_KEY="your-cloudinary-api-key"
+   CLOUDINARY_API_SECRET="your-cloudinary-api-secret"
    
    # App
    NEXT_PUBLIC_APP_URL="http://localhost:3000"
@@ -269,18 +349,100 @@ Send password reset email.
 ### Meal Tracking Endpoints
 
 #### POST `/api/meals`
-Log a new meal.
+Log a new meal with detailed nutrition information.
+
+**Request Body:**
+```json
+{
+  "foodName": "Grilled Chicken Breast",
+  "foodImage": "https://example.com/chicken.jpg",
+  "category": "LUNCH",
+  "quantity": 150,
+  "portion": "1 piece",
+  "calories": 250,
+  "protein": 46,
+  "carbs": 0,
+  "fat": 5,
+  "fiber": 0,
+  "sugar": 0,
+  "sodium": 74,
+  "foodData": {}
+}
+```
 
 #### GET `/api/meals`
-Retrieve user's meal history.
+Retrieve user's meal history with optional date filtering.
+
+**Query Parameters:**
+- `date` (optional): Filter meals by specific date (YYYY-MM-DD)
+
+#### POST `/api/meals/plan`
+Generate AI-powered personalized meal plan.
+
+**Request Body:**
+```json
+{
+  "dietType": "balanced",
+  "mealDays": 7
+}
+```
+
+#### POST `/api/meals/save-plan`
+Save a generated meal plan to user's history.
 
 ### Workout Tracking Endpoints
 
-#### POST `/api/workouts`
-Log a new workout.
+#### POST `/api/workouts/plan`
+Generate AI-powered personalized workout plan.
 
-#### GET `/api/workouts`
-Retrieve user's workout history.
+**Request Body:**
+```json
+{
+  "fitnessLevel": "beginner",
+  "workoutDays": 5,
+  "method": "Push/Pull/Legs (PPL) Split"
+}
+```
+
+#### POST `/api/workouts/save-plan`
+Save a generated workout plan to user's history.
+
+#### GET `/api/workouts/plan?latest=true`
+Retrieve the most recent workout plan.
+
+#### GET `/api/workouts/plan`
+Retrieve all saved workout plans.
+
+### Food Search Endpoints
+
+#### GET `/api/food?q=chicken`
+Search for food items using Open Food Facts API.
+
+**Query Parameters:**
+- `q`: Search query for food items
+
+### User Management Endpoints
+
+#### GET `/api/user/get-user-data`
+Retrieve current user's profile data.
+
+#### POST `/api/user/update-user-data`
+Update user profile information.
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "age": 25,
+  "height": 175,
+  "weight": 70,
+  "goal": "MAINTAIN",
+  "diseases": ["NONE"]
+}
+```
+
+#### POST `/api/user/upload-image-signature`
+Get Cloudinary upload signature for secure image uploads.
 
 ## 🧪 Testing
 
