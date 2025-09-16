@@ -18,6 +18,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: {},
         password: {},
+        remember: { type: "boolean" },
       },
       authorize: async (credentials) => {
         try {
@@ -36,12 +37,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.log("Password valid:", isValid);
           if (!isValid) return null;
 
-          // 3- return user object (without password)
+          // 3- return user object (without password) with remember flag
           console.log("Auth successful for:", user.email);
           return {
             id: user.id,
             name: user.name,
             email: user.email,
+            remember: credentials?.remember === "true" || credentials?.remember === true,
           };
         } catch (error) {
           if (error instanceof ZodError) {
@@ -56,14 +58,47 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days default
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days default
   },
   callbacks: {
-    async session({ session, token }) {
-      if (session.user && token?.sub) {
-        session.user.id = token.sub;
+    async jwt({ token, user, trigger }) {
+      // If user is signing in and has remember flag, set longer expiration
+      if (user && trigger === "signIn") {
+        const remember = (user as any).remember;
+        if (remember) {
+          // Set to 30 days for remember me
+          token.maxAge = 30 * 24 * 60 * 60; // 30 days
+        } else {
+          // Set to 1 day for normal login
+          token.maxAge = 24 * 60 * 60; // 1 day
+        }
       }
-      console.log(token);
+
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token?.id) {
+        session.user.id = token.id as string;
+      }
       return session;
+    },
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+      },
     },
   },
   secret: process.env.AUTH_SECRET,

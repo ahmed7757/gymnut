@@ -752,6 +752,58 @@ export const swaggerConfig: OpenAPIV3.Document = {
                     }
                 }
             }
+        },
+        '/api/health': {
+            get: {
+                tags: ['System'],
+                summary: 'Health check endpoint',
+                description: 'Check the health status of the API and its dependencies',
+                responses: {
+                    '200': {
+                        description: 'System is healthy',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        status: { type: 'string', example: 'healthy' },
+                                        timestamp: { type: 'string', format: 'date-time' },
+                                        uptime: { type: 'number', description: 'Uptime in seconds' },
+                                        version: { type: 'string', example: '1.0.0' },
+                                        services: {
+                                            type: 'object',
+                                            properties: {
+                                                database: { type: 'string', example: 'connected' },
+                                                ai: { type: 'string', example: 'available' },
+                                                email: { type: 'string', example: 'configured' },
+                                                storage: { type: 'string', example: 'available' }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '503': {
+                        description: 'Service unavailable',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        status: { type: 'string', example: 'unhealthy' },
+                                        timestamp: { type: 'string', format: 'date-time' },
+                                        errors: {
+                                            type: 'array',
+                                            items: { type: 'string' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 };

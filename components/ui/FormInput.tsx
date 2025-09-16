@@ -10,6 +10,7 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   showPassword?: boolean;
   onTogglePassword?: () => void;
+  showValidationIcon?: boolean;
 }
 
 export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
@@ -23,6 +24,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
       error,
       showPassword,
       onTogglePassword,
+      showValidationIcon = true,
       onChange,
       onFocus,
       onBlur,
@@ -67,7 +69,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           </button>
         )}
 
-        {typeof value === "string" && value && !error && (
+        {showValidationIcon && typeof value === "string" && value && !error && (
           <CheckCircle className="absolute right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
         )}
 

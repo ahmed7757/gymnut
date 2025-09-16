@@ -1,244 +1,59 @@
-// app/login/page.tsx
-"use client";
+import { Metadata } from 'next';
+import { Suspense } from 'react';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { LoginForm } from '@/components/auth/LoginForm';
+import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary';
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Loader2, Apple, XCircle, Zap, Target } from "lucide-react";
-import { FaGoogle } from "react-icons/fa6";
-import Link from "next/link";
-import { useLoginStore } from "@/stores/authStore";
-import { useAuth } from "@/hooks/useAuth";
-import { FormInput, ErrorMessage } from "@/components/ui/FormInput";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { loginSchema } from "@/lib/schemas";
-
-const Login = () => {
-  const {
-    error,
-    loading,
-    remember,
-    showPassword,
-    setError,
-    setLoading,
-    setRemember,
-    setShowPassword,
-  } = useLoginStore();
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors, isValid },
-  } = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    mode: "onChange",
-    defaultValues: { email: "", password: "" },
-  });
-
-  const emailValue = watch("email");
-  const passwordValue = watch("password");
-
-  const {
-    handleAuthError,
-    handleCredentialsSignIn,
-    handleGoogleSignIn,
-    router,
-  } = useAuth();
-
-  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
-    try {
-      setLoading(true);
-      setError("");
-      await handleCredentialsSignIn(data.email, data.password);
-      router.replace("/");
-    } catch (err: any) {
-      setError(handleAuthError(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 flex items-center justify-center px-4 py-8 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-200/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-200/30 rounded-full blur-3xl"></div>
-      </div>
-
-      <Card className="w-full max-w-md shadow-2xl rounded-3xl border-0 bg-white/95 backdrop-blur-sm relative z-10">
-        <CardHeader className="text-center space-y-4 pb-6">
-          <div className="flex items-center justify-center gap-3">
-            <div className="flex items-center gap-2 text-green-600">
-              <Apple className="h-8 w-8" />
-              <Zap className="h-6 w-6 text-emerald-500" />
-              <Target className="h-6 w-6 text-green-700" />
-            </div>
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-green-700 bg-clip-text text-transparent">
-              Gym Nutrition
-            </h1>
-            <p className="text-sm text-green-600 font-medium mt-1">
-              Fuel Your Fitness Journey
-            </p>
-          </div>
-          <CardTitle className="text-2xl font-semibold text-gray-800">
-            Welcome back, Champion!
-          </CardTitle>
-          <CardDescription className="text-gray-600 text-base">
-            Ready to crush your nutrition goals? 💪
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="px-8 pb-8">
-          {error && (
-            <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-200">
-              <div className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-500" />
-                <span className="font-medium">{error}</span>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Email */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="email"
-                className="text-sm font-semibold text-gray-700"
-              >
-                Email Address
-              </Label>
-              <FormInput
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                error={errors.email?.message}
-                value={emailValue || ""}
-                {...register("email")}
-                className="focus:ring-2 focus:ring-green-500 focus:border-green-500 border-gray-200"
-              />
-              <ErrorMessage message={errors.email?.message} />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="password"
-                className="text-sm font-semibold text-gray-700"
-              >
-                Password
-              </Label>
-              <FormInput
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                showPassword={showPassword}
-                onTogglePassword={() => setShowPassword(!showPassword)}
-                error={errors.password?.message}
-                value={passwordValue || ""}
-                {...register("password")}
-                className="focus:ring-2 focus:ring-green-500 focus:border-green-500 border-gray-200"
-              />
-              <ErrorMessage message={errors.password?.message} />
-            </div>
-
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="remember"
-                  checked={remember}
-                  onCheckedChange={(v) => setRemember(!!v)}
-                  className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-                />
-                <Label
-                  htmlFor="remember"
-                  className="text-sm font-medium text-gray-700 cursor-pointer"
-                >
-                  Remember me
-                </Label>
-              </div>
-              <Link
-                href="/forgot-password"
-                className="text-sm text-green-600 hover:text-green-700 font-medium hover:underline transition-colors"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-              disabled={loading || !isValid}
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Signing in...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  Start Your Journey
-                </div>
-              )}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-4 text-gray-500 font-medium">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          {/* Google Sign In */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-12 flex items-center justify-center gap-2 text-base font-medium border-2 hover:border-green-300 hover:bg-green-50 transition-colors rounded-xl bg-transparent"
-            onClick={handleGoogleSignIn}
-          >
-            <FaGoogle className="h-5 w-5" />
-            Continue with Google
-          </Button>
-
-          <p className="mt-8 text-center text-sm text-gray-600">
-            New to your fitness journey?{" "}
-            <Link
-              href="/register"
-              className="text-green-600 hover:text-green-700 font-semibold hover:underline transition-colors"
-            >
-              Join the community
-            </Link>
-          </p>
-
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500 italic">
-              "Transform your body, fuel your dreams" 🌱
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+// Server-side metadata generation
+export const metadata: Metadata = {
+  title: 'Login - GymNut | AI-Powered Fitness & Nutrition Tracker',
+  description: 'Sign in to your GymNut account and continue your fitness journey with personalized nutrition plans and workout routines.',
+  keywords: ['login', 'fitness', 'nutrition', 'gym', 'health', 'tracker'],
+  openGraph: {
+    title: 'Login - GymNut',
+    description: 'Sign in to continue your fitness journey',
+    type: 'website',
+  },
+  robots: {
+    index: false, // Don't index login pages
+    follow: false,
+  },
 };
 
-export default Login;
+// Loading component for Suspense
+function LoginLoading() {
+  return (
+    <AuthLayout
+      title="Welcome back, Champion!"
+      description="Ready to crush your nutrition goals? 💪"
+      subtitle="Loading your fitness journey..."
+    >
+      <div className="space-y-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </AuthLayout>
+  );
+}
+
+// Main server component
+export default function LoginPage() {
+  return (
+    <AuthErrorBoundary>
+      <Suspense fallback={<LoginLoading />}>
+        <AuthLayout
+          title="Welcome back, Champion!"
+          description="Ready to crush your nutrition goals? 💪"
+          subtitle="Transform your body, fuel your dreams 🌱"
+        >
+          <LoginForm />
+        </AuthLayout>
+      </Suspense>
+    </AuthErrorBoundary>
+  );
+}

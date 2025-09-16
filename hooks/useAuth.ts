@@ -18,11 +18,12 @@ export const useAuth = () => {
   }, []);
 
   const handleCredentialsSignIn = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, remember: boolean = false) => {
       const result = await signIn("credentials", {
         redirect: false,
         email,
         password,
+        remember: remember.toString(),
       });
 
       if (result?.error) {
