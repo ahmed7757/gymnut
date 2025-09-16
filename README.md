@@ -1,5 +1,3 @@
----
-
 # 🏋️‍♂️ GymNut – AI-Powered Fitness & Nutrition Tracker
 
 **GymNut** is a modern, scalable web application that helps users track their meals, workouts, and progress while receiving **AI-powered personalized advice** on nutrition, fitness, and healthy habits.
