@@ -1,5 +1,6 @@
 // stores/authStore.ts
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import {
   AuthFormState,
   RegisterFormState,
@@ -9,21 +10,30 @@ import {
   ForgotPasswordActions,
 } from "@/types";
 
-export const useLoginStore = create<AuthFormState & AuthStoreActions>(
-  (set) => ({
-    email: "",
-    password: "",
-    error: "",
-    loading: false,
-    showPassword: false,
-    remember: false,
-    setEmail: (email) => set({ email }),
-    setPassword: (password) => set({ password }),
-    setError: (error) => set({ error }),
-    setLoading: (loading) => set({ loading }),
-    setShowPassword: (showPassword) => set({ showPassword }),
-    setRemember: (remember) => set({ remember }),
-  })
+export const useLoginStore = create<AuthFormState & AuthStoreActions>()(
+  persist(
+    (set) => ({
+      email: "",
+      password: "",
+      error: "",
+      loading: false,
+      showPassword: false,
+      remember: false,
+      setEmail: (email) => set({ email }),
+      setPassword: (password) => set({ password }),
+      setError: (error) => set({ error }),
+      setLoading: (loading) => set({ loading }),
+      setShowPassword: (showPassword) => set({ showPassword }),
+      setRemember: (remember) => set({ remember }),
+    }),
+    {
+      name: "login-store",
+      partialize: (state) => ({
+        remember: state.remember,
+        email: state.remember ? state.email : "", // Only persist email if remember is true
+      }),
+    }
+  )
 );
 
 export const useRegisterStore = create<

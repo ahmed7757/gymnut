@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner"
+import { Toaster } from "@/components/ui/sonner";
+import { SessionProvider } from "@/components/providers/SessionProvider";
 
 export const metadata: Metadata = {
   title: "GymNut - Your Fitness Companion",
@@ -15,12 +16,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={``}
+        className=""
+        suppressHydrationWarning={true}
       >
-        <main>
-          {children}
-        </main>
-        <Toaster />
+        <SessionProvider>
+          <main>
+            {children}
+          </main>
+          <Toaster />
+        </SessionProvider>
       </body>
     </html>
   );

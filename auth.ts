@@ -18,6 +18,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: {},
         password: {},
+        remember: { type: "boolean" },
       },
       authorize: async (credentials) => {
         try {
@@ -36,12 +37,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.log("Password valid:", isValid);
           if (!isValid) return null;
 
-          // 3- return user object (without password)
+          // 3- return user object (without password) with remember flag
           console.log("Auth successful for:", user.email);
           return {
             id: user.id,
             name: user.name,
             email: user.email,
+            remember: credentials?.remember === "true" || credentials?.remember === true,
           };
         } catch (error) {
           if (error instanceof ZodError) {
@@ -56,14 +58,50 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days default
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days default
   },
   callbacks: {
-    async session({ session, token }) {
-      if (session.user && token?.sub) {
-        session.user.id = token.sub;
+    async jwt({ token, user, trigger }) {
+      // Debug logging
+      console.log(`[JWT Callback] Trigger: ${trigger}, User: ${user ? 'exists' : 'null'}, Token: ${token ? 'exists' : 'null'}`);
+
+      // If user is signing in, add user info to token
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        console.log(`[JWT Callback] Added user info to token:`, { id: user.id, email: user.email });
       }
-      console.log(token);
+
+      return token;
+    },
+    async session({ session, token }) {
+      console.log(`[Session Callback] Token: ${token ? 'exists' : 'null'}, Session: ${session ? 'exists' : 'null'}`);
+
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        console.log(`[Session Callback] Session populated with user:`, { id: token.id, email: token.email });
+      }
       return session;
+    },
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+      },
     },
   },
   secret: process.env.AUTH_SECRET,
