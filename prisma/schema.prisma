@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password       String?
+  name           String?
+  gender         Gender    @default(MALE)
+  location       String    @default("Egypt")
+  emailVerified  DateTime?
+  height         Float?
+  weight         Float?
+  goal           Goal      @default(MAINTAIN)
+  diseases       Disease[] @default([NONE])
+  age            Int?
+  image          String?
+  meals          MealLog[]
+  workouts       Workout[]
+  mealPlans      MealPlan[]
+  accounts       Account[] // <-- Add this
+  sessions       Session[]
+  resetToken     String?
+  resetTokenExpires DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Performance indexes
+  @@index([email])
+  @@index([createdAt])
+  @@index([goal])
+  @@index([resetToken])
+}
+
+model MealLog {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  foodData  Json // cached from external API
+  category  MealCategory @default(LUNCH)
+  quantity  Float? // in grams
+  foodName  String            // "Grilled Chicken Breast"
+  foodImage String?           // snapshot of image URL
+  foodBrand String?           // e.g., "Trader Joe's" (optional)
+  portion   String?
+  calories  Float
+  protein   Float
+  carbs     Float
+  fat       Float
+  fiber     Float?            // optional, extra
+  sugar     Float?            // optional, extra
+  sodium    Float? 
+  loggedAt  DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
+
+  // Performance indexes
+  @@index([userId, loggedAt])
+  @@index([userId, category])
+  @@index([loggedAt])
+  @@index([deletedAt])
+}
+
+model Workout {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  method    String?
+  plan      Json
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Performance indexes
+  @@index([userId, createdAt])
+  @@index([method])
+  @@index([deletedAt])
+}
+
+model MealPlan {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  plan      Json
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Performance indexes
+  @@index([userId, createdAt])
+  @@index([deletedAt])
+}
+
+enum Goal {
+  LOSE
+  MAINTAIN
+  GAIN
+}
+
+enum Disease {
+  DIABETES
+  HYPERTENSION
+  HEART_DISEASE
+  ASTHMA
+  NONE
+}
+
+enum MealCategory {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
