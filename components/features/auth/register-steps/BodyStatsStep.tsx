@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { useRegisterStore } from "@/stores/useRegisterStore";
 
 const stepSchema = registerSchema.pick({
     age: true,
@@ -15,13 +16,9 @@ const stepSchema = registerSchema.pick({
 
 type StepData = z.infer<typeof stepSchema>;
 
-interface Props {
-    defaultValues: Partial<StepData>;
-    onNext: (data: StepData) => void;
-    onBack: () => void;
-}
+export default function BodyStatsStep() {
+    const { formData, nextStep, prevStep } = useRegisterStore();
 
-export default function BodyStatsStep({ defaultValues, onNext, onBack }: Props) {
     const {
         register,
         handleSubmit,
@@ -29,14 +26,18 @@ export default function BodyStatsStep({ defaultValues, onNext, onBack }: Props) 
     } = useForm<StepData>({
         resolver: zodResolver(stepSchema),
         defaultValues: {
-            age: defaultValues.age,
-            height: defaultValues.height,
-            weight: defaultValues.weight,
+            age: formData.age,
+            height: formData.height,
+            weight: formData.weight,
         },
     });
 
+    const onSubmit = (data: StepData) => {
+        nextStep(data);
+    };
+
     return (
-        <form onSubmit={handleSubmit(onNext)}>
+        <form onSubmit={handleSubmit(onSubmit)}>
             <CardHeader>
                 <CardTitle>Body Stats</CardTitle>
                 <CardDescription>Help us customize your plan.</CardDescription>
@@ -78,7 +79,7 @@ export default function BodyStatsStep({ defaultValues, onNext, onBack }: Props) 
                 </div>
             </CardContent>
             <CardFooter className="flex justify-between gap-4">
-                <Button type="button" variant="outline" onClick={onBack}>Back</Button>
+                <Button type="button" variant="outline" onClick={prevStep}>Back</Button>
                 <Button type="submit" className="flex-1">Next: Goals</Button>
             </CardFooter>
         </form>

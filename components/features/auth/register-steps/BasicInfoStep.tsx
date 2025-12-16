@@ -13,6 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { useRegisterStore } from "@/stores/useRegisterStore";
 
 // Pick fields for this step
 const stepSchema = registerSchema.pick({
@@ -28,12 +29,9 @@ const stepSchema = registerSchema.pick({
 
 type StepData = z.infer<typeof stepSchema>;
 
-interface Props {
-    defaultValues: Partial<StepData>;
-    onNext: (data: StepData) => void;
-}
+export default function BasicInfoStep() {
+    const { formData, nextStep } = useRegisterStore();
 
-export default function BasicInfoStep({ defaultValues, onNext }: Props) {
     const {
         register,
         handleSubmit,
@@ -43,18 +41,22 @@ export default function BasicInfoStep({ defaultValues, onNext }: Props) {
     } = useForm<StepData>({
         resolver: zodResolver(stepSchema),
         defaultValues: {
-            name: defaultValues.name || "",
-            email: defaultValues.email || "",
-            password: defaultValues.password || "",
-            confirmPassword: defaultValues.confirmPassword || "",
-            gender: defaultValues.gender || undefined,
+            name: formData.name || "",
+            email: formData.email || "",
+            password: formData.password || "",
+            confirmPassword: formData.confirmPassword || "",
+            gender: formData.gender || undefined,
         },
     });
 
     const gender = watch("gender");
 
+    const onSubmit = (data: StepData) => {
+        nextStep(data);
+    };
+
     return (
-        <form onSubmit={handleSubmit(onNext)}>
+        <form onSubmit={handleSubmit(onSubmit)}>
             <CardHeader>
                 <CardTitle>Create Account</CardTitle>
                 <CardDescription>Let's start with your basic information.</CardDescription>

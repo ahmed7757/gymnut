@@ -6,21 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useRegisterStore } from "@/stores/useRegisterStore";
+import { useRouter } from "next/navigation";
 
 const stepSchema = registerSchema.pick({
     diseases: true,
-});
+}).required();
 
 type StepData = z.infer<typeof stepSchema>;
-
-interface Props {
-    defaultValues: Partial<StepData>;
-    onSubmit: (data: StepData) => void;
-    onBack: () => void;
-    isSubmitting: boolean;
-}
 
 const CONDITIONS = [
     { id: "DIABETES", label: "Diabetes" },
@@ -30,15 +24,19 @@ const CONDITIONS = [
     { id: "NONE", label: "None / I'm healthy" },
 ] as const;
 
-export default function HealthStep({ defaultValues, onSubmit, onBack, isSubmitting }: Props) {
+export default function HealthStep() {
+    const router = useRouter();
+    const { formData, submitRegistration, prevStep, isSubmitting } = useRegisterStore();
+
     const {
         handleSubmit,
         setValue,
         watch,
     } = useForm<StepData>({
         resolver: zodResolver(stepSchema),
+        mode: "onChange",
         defaultValues: {
-            diseases: defaultValues.diseases || ["NONE"],
+            diseases: formData.diseases || ["NONE"],
         },
     });
 
@@ -63,6 +61,13 @@ export default function HealthStep({ defaultValues, onSubmit, onBack, isSubmitti
         setValue("diseases", current as any);
     }
 
+    const onSubmit = async (data: StepData) => {
+        const success = await submitRegistration(data);
+        if (success) {
+            router.push("/login?registered=true");
+        }
+    };
+
     return (
         <form onSubmit={handleSubmit(onSubmit)}>
             <CardHeader>
@@ -86,7 +91,7 @@ export default function HealthStep({ defaultValues, onSubmit, onBack, isSubmitti
                 </div>
             </CardContent>
             <CardFooter className="flex justify-between gap-4">
-                <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>Back</Button>
+                <Button type="button" variant="outline" onClick={prevStep} disabled={isSubmitting}>Back</Button>
                 <Button type="submit" className="flex-1" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Account

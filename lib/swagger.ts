@@ -168,6 +168,149 @@ export const swaggerConfig: OpenAPIV3.Document = {
                 }
             }
         },
+        '/api/auth/signin/credentials': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Login with email and password (NextAuth)',
+                description: 'Authenticate user using NextAuth credentials provider. Returns session cookie on success.',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/x-www-form-urlencoded': {
+                            schema: {
+                                type: 'object',
+                                required: ['email', 'password', 'csrfToken'],
+                                properties: {
+                                    email: { type: 'string', format: 'email' },
+                                    password: { type: 'string' },
+                                    csrfToken: { type: 'string', description: 'CSRF token from /api/auth/csrf' },
+                                    remember: { type: 'boolean', default: false },
+                                    redirect: { type: 'boolean', default: true },
+                                    callbackUrl: { type: 'string', default: '/' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    '302': {
+                        description: 'Redirect to callback URL on success',
+                        headers: {
+                            'Set-Cookie': {
+                                description: 'Session cookie (next-auth.session-token)',
+                                schema: { type: 'string' }
+                            },
+                            'Location': {
+                                description: 'Redirect URL',
+                                schema: { type: 'string' }
+                            }
+                        }
+                    },
+                    '401': {
+                        description: 'Invalid credentials',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        error: { type: 'string', example: 'CredentialsSignin' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/auth/csrf': {
+            get: {
+                tags: ['Authentication'],
+                summary: 'Get CSRF token',
+                description: 'Retrieve CSRF token required for login',
+                responses: {
+                    '200': {
+                        description: 'CSRF token retrieved',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        csrfToken: { type: 'string' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/auth/session': {
+            get: {
+                tags: ['Authentication'],
+                summary: 'Get current session',
+                description: 'Retrieve current user session if authenticated',
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    '200': {
+                        description: 'Session retrieved',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        user: {
+                                            type: 'object',
+                                            properties: {
+                                                id: { type: 'string' },
+                                                name: { type: 'string' },
+                                                email: { type: 'string', format: 'email' },
+                                                image: { type: 'string', format: 'uri' }
+                                            }
+                                        },
+                                        expires: { type: 'string', format: 'date-time' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/auth/signout': {
+            post: {
+                tags: ['Authentication'],
+                summary: 'Logout user',
+                description: 'Sign out the current user and clear session',
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/x-www-form-urlencoded': {
+                            schema: {
+                                type: 'object',
+                                required: ['csrfToken'],
+                                properties: {
+                                    csrfToken: { type: 'string' },
+                                    callbackUrl: { type: 'string', default: '/' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    '302': {
+                        description: 'Redirect after logout',
+                        headers: {
+                            'Set-Cookie': {
+                                description: 'Cleared session cookie',
+                                schema: { type: 'string' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
         '/api/meals': {
             post: {
                 tags: ['Meals'],

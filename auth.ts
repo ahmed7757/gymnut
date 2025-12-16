@@ -39,11 +39,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           // 3- return user object (without password) with remember flag
           console.log("Auth successful for:", user.email);
+          const remember = credentials?.remember;
+          const rememberFlag = remember === "true" || remember === true || remember === "on";
           return {
             id: user.id,
             name: user.name,
             email: user.email,
-            remember: credentials?.remember === "true" || credentials?.remember === true,
+            remember: rememberFlag,
           };
         } catch (error) {
           if (error instanceof ZodError) {

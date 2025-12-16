@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 
-import { AuthService } from "@/lib/api/services/authService";
 import { loginSchema } from "@/lib/schemas";
 import { useLoginStore } from "@/stores/useLoginStore";
 import { signIn } from "next-auth/react";
@@ -63,7 +62,6 @@ export default function LoginForm() {
 
     const emailValue = watch("email");
     const passwordValue = watch("password");
-    const rememberValue = watch("remember");
 
     // Load persisted email when mounted
     useEffect(() => {
@@ -105,7 +103,7 @@ export default function LoginForm() {
                     toast.success("Welcome back!", {
                         description: "You have successfully logged in.",
                     });
-                    router.push("/dashboard");
+                    router.push("/");
                     router.refresh();
                 }
             } catch (err: any) {
@@ -133,17 +131,6 @@ export default function LoginForm() {
         }
     }, []);
 
-    // Memoized remember me handler
-    const handleRememberChange = useCallback(
-        (checked: boolean) => {
-            setValue("remember", checked);
-            if (!checked) {
-                setPersistEmail("");
-                setRemember(false);
-            }
-        },
-        [setValue, setPersistEmail, setRemember]
-    );
 
     // Memoized submit button content
     const submitButtonContent = useMemo(() => {
@@ -280,8 +267,7 @@ export default function LoginForm() {
                         <div className="flex items-center space-x-2 cursor-pointer">
                             <Checkbox
                                 id="remember"
-                                checked={rememberValue}
-                                onCheckedChange={handleRememberChange}
+                                {...register("remember")}
                                 className="rounded border-slate-600 bg-slate-800 text-primary focus:ring-primary/50 w-4 h-4 data-[state=checked]:bg-primary data-[state=checked]:text-white border-none"
                             />
                             <Label

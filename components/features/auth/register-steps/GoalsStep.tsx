@@ -7,20 +7,17 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useRegisterStore } from "@/stores/useRegisterStore";
 
 const stepSchema = registerSchema.pick({
     goal: true,
-});
+}).required();
 
 type StepData = z.infer<typeof stepSchema>;
 
-interface Props {
-    defaultValues: Partial<StepData>;
-    onNext: (data: StepData) => void;
-    onBack: () => void;
-}
+export default function GoalsStep() {
+    const { formData, nextStep, prevStep } = useRegisterStore();
 
-export default function GoalsStep({ defaultValues, onNext, onBack }: Props) {
     const {
         handleSubmit,
         setValue,
@@ -28,12 +25,17 @@ export default function GoalsStep({ defaultValues, onNext, onBack }: Props) {
         formState: { errors },
     } = useForm<StepData>({
         resolver: zodResolver(stepSchema),
+        mode: "onChange",
         defaultValues: {
-            goal: defaultValues.goal || "MAINTAIN",
+            goal: formData.goal || "MAINTAIN",
         },
     });
 
     const selectedGoal = watch("goal");
+
+    const onSubmit = (data: StepData) => {
+        nextStep(data);
+    };
 
     // Helper to make radio button look like a card
     const GoalCard = ({ value, title, desc }: { value: string, title: string, desc: string }) => (
@@ -53,7 +55,7 @@ export default function GoalsStep({ defaultValues, onNext, onBack }: Props) {
     )
 
     return (
-        <form onSubmit={handleSubmit(onNext)}>
+        <form onSubmit={handleSubmit(onSubmit)}>
             <CardHeader>
                 <CardTitle>What is your main goal?</CardTitle>
                 <CardDescription>This will help AI tailor your workouts.</CardDescription>
@@ -71,7 +73,7 @@ export default function GoalsStep({ defaultValues, onNext, onBack }: Props) {
                 {errors.goal && <p className="text-sm text-destructive">{errors.goal.message}</p>}
             </CardContent>
             <CardFooter className="flex justify-between gap-4">
-                <Button type="button" variant="outline" onClick={onBack}>Back</Button>
+                <Button type="button" variant="outline" onClick={prevStep}>Back</Button>
                 <Button type="submit" className="flex-1">Next: Health</Button>
             </CardFooter>
         </form>

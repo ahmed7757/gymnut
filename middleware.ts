@@ -19,11 +19,6 @@ const authRoutes = [
     '/forgot-password'
 ];
 
-// Define routes that should redirect authenticated users to dashboard
-const redirectToDashboardRoutes = [
-    '/' // Root route - redirect authenticated users to dashboard
-];
-
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
@@ -59,11 +54,6 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith(route)
     );
 
-    // Check if the route should redirect authenticated users to dashboard
-    const isRedirectToDashboardRoute = redirectToDashboardRoutes.some(route =>
-        pathname === route
-    );
-
     // Redirect unauthenticated users from protected routes
     if (isProtectedRoute && !token) {
         console.log(`[Middleware] Redirecting to login from ${pathname}`);
@@ -72,15 +62,16 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
 
+
     // Redirect authenticated users from auth routes to dashboard
     if (isAuthRoute && token) {
         console.log(`[Middleware] Redirecting to dashboard from ${pathname}`);
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    // Redirect authenticated users from root route to dashboard
-    if (isRedirectToDashboardRoute && token) {
-        console.log(`[Middleware] Redirecting authenticated user from ${pathname} to dashboard`);
+    // Redirect authenticated users from root to dashboard
+    if (pathname === '/' && token) {
+        console.log(`[Middleware] Redirecting authenticated user to dashboard`);
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 

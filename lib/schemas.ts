@@ -30,7 +30,10 @@ export const registerSchema = z
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Password is required"),
-  remember: z.boolean().optional(),
+  remember: z.union([z.boolean(), z.string()]).transform((val) => {
+    if (typeof val === 'boolean') return val;
+    return val === 'true' || val === 'on';
+  }).optional(),
 });
 
 export const forgotPasswordSchema = z.object({
