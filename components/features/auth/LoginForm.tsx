@@ -1,45 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 import { AuthService } from "@/lib/api/services/authService";
 import { loginSchema } from "@/lib/schemas";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { useLoginStore } from "@/stores/useLoginStore";
+import { signIn } from "next-auth/react";
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
     const router = useRouter();
-    const setUser = useAuthStore((state) => state.setUser);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+
+    const {
+        email: persistedEmail,
+        remember,
+        showPassword,
+        isLoading,
+        error,
+        setEmail: setPersistEmail,
+        setRemember,
+        toggleShowPassword,
+        setIsLoading,
+        setError,
+        clearError,
+    } = useLoginStore();
+
+    // Prevent hydration mismatch
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     const {
         register,
         handleSubmit,
         setValue,
         watch,
-        formState: { errors },
+        formState: { errors, isValid },
     } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
+        mode: "onChange",
         defaultValues: {
             email: "",
             password: "",
@@ -47,37 +61,117 @@ export default function LoginForm() {
         },
     });
 
-    const remember = watch("remember");
+    const emailValue = watch("email");
+    const passwordValue = watch("password");
+    const rememberValue = watch("remember");
 
-    async function onSubmit(data: LoginFormData) {
-        setIsLoading(true);
-        try {
-            const result = await AuthService.login(data);
-
-            if (!result?.error) {
-                // Fetch current user to update store
-                const user = await AuthService.getCurrentUser();
-                // setUser(user); // Optimization: Zustand might be updated by session provider, but manual check is safe
-
-                toast.success("Welcome back!", {
-                    description: "You have successfully logged in.",
-                });
-
-                router.push("/dashboard");
-                router.refresh();
-            } else {
-                toast.error("Login failed", {
-                    description: "Invalid email or password.",
-                });
-            }
-        } catch (error) {
-            toast.error("An error occurred", {
-                description: "Please try again later."
-            });
-            console.error(error);
-        } finally {
-            setIsLoading(false);
+    // Load persisted email when mounted
+    useEffect(() => {
+        if (isMounted && remember && persistedEmail) {
+            setValue("email", persistedEmail);
+            setValue("remember", true);
         }
+    }, [isMounted, remember, persistedEmail, setValue]);
+
+    // Memoized submit handler
+    const onSubmit = useCallback(
+        async (data: LoginFormData) => {
+            try {
+                setIsLoading(true);
+                clearError();
+
+                // Persist email if remember me is checked
+                if (data.remember) {
+                    setPersistEmail(data.email);
+                    setRemember(true);
+                } else {
+                    setPersistEmail("");
+                    setRemember(false);
+                }
+
+                const result = await signIn("credentials", {
+                    email: data.email,
+                    password: data.password,
+                    remember: data.remember,
+                    redirect: false,
+                });
+
+                if (result?.error) {
+                    setError("Invalid email or password");
+                    toast.error("Login failed", {
+                        description: "Invalid email or password.",
+                    });
+                } else if (result?.ok) {
+                    toast.success("Welcome back!", {
+                        description: "You have successfully logged in.",
+                    });
+                    router.push("/dashboard");
+                    router.refresh();
+                }
+            } catch (err: any) {
+                const errorMessage = err?.message || "An error occurred. Please try again.";
+                setError(errorMessage);
+                toast.error("An error occurred", {
+                    description: errorMessage,
+                });
+                console.error("Login error:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [router, setIsLoading, setError, clearError, setPersistEmail, setRemember]
+    );
+
+    // Memoized Google sign-in handler
+    const handleGoogleSignIn = useCallback(async () => {
+        try {
+            await signIn("google", { callbackUrl: "/dashboard" });
+        } catch (err) {
+            toast.error("Google sign-in failed", {
+                description: "Please try again later.",
+            });
+        }
+    }, []);
+
+    // Memoized remember me handler
+    const handleRememberChange = useCallback(
+        (checked: boolean) => {
+            setValue("remember", checked);
+            if (!checked) {
+                setPersistEmail("");
+                setRemember(false);
+            }
+        },
+        [setValue, setPersistEmail, setRemember]
+    );
+
+    // Memoized submit button content
+    const submitButtonContent = useMemo(() => {
+        if (isLoading) {
+            return (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                </>
+            );
+        }
+        return "Log In";
+    }, [isLoading]);
+
+    // Loading skeleton
+    if (!isMounted) {
+        return (
+            <Card className="w-full max-w-[440px] glass-card rounded-2xl p-8 shadow-2xl relative overflow-hidden border-none">
+                <div className="animate-pulse space-y-4">
+                    <div className="h-8 bg-white/10 rounded w-3/4 mx-auto"></div>
+                    <div className="h-4 bg-white/10 rounded w-1/2 mx-auto"></div>
+                    <div className="h-12 bg-white/10 rounded"></div>
+                    <div className="h-12 bg-white/10 rounded"></div>
+                    <div className="h-12 bg-white/10 rounded"></div>
+                    <div className="h-12 bg-white/10 rounded"></div>
+                </div>
+            </Card>
+        );
     }
 
     return (
@@ -90,12 +184,19 @@ export default function LoginForm() {
                     <p className="text-slate-400 text-sm">Enter your details to access your dashboard</p>
                 </div>
 
+                {/* Error Alert */}
+                {error && (
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm text-destructive">
+                        {error}
+                    </div>
+                )}
+
                 <Button
                     variant="outline"
                     type="button"
                     disabled={isLoading}
                     className="w-full flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg h-12 transition-all group text-white hover:text-white"
-                    onClick={() => { /* Google Auth Logic */ }}
+                    onClick={handleGoogleSignIn}
                 >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -113,17 +214,24 @@ export default function LoginForm() {
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+                    {/* Email Field */}
                     <div className="flex flex-col gap-2">
-                        <Label htmlFor="email" className="text-sm font-medium text-slate-300">Email Address</Label>
+                        <Label htmlFor="email" className="text-sm font-medium text-slate-300">
+                            Email Address
+                        </Label>
                         <div className="relative">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-                                <span className="material-symbols-outlined text-[20px]"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg></span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                                </svg>
                             </div>
                             <Input
                                 id="email"
                                 type="email"
                                 placeholder="name@example.com"
                                 disabled={isLoading}
+                                autoComplete="email"
                                 className="w-full input-glass rounded-lg h-11 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus-visible:ring-1 focus-visible:ring-primary border-none"
                                 {...register("email")}
                             />
@@ -133,32 +241,47 @@ export default function LoginForm() {
                         )}
                     </div>
 
+                    {/* Password Field */}
                     <div className="flex flex-col gap-2">
-                        <Label htmlFor="password" className="text-sm font-medium text-slate-300">Password</Label>
+                        <Label htmlFor="password" className="text-sm font-medium text-slate-300">
+                            Password
+                        </Label>
                         <div className="relative">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-                                <span className="material-symbols-outlined text-[20px]"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-lock"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg></span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
                             </div>
                             <Input
                                 id="password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 placeholder="Enter your password"
                                 disabled={isLoading}
-                                className="w-full input-glass rounded-lg h-11 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus-visible:ring-1 focus-visible:ring-primary border-none"
+                                autoComplete="current-password"
+                                className="w-full input-glass rounded-lg h-11 pl-10 pr-12 text-sm text-white placeholder:text-slate-500 focus-visible:ring-1 focus-visible:ring-primary border-none"
                                 {...register("password")}
                             />
+                            <button
+                                type="button"
+                                onClick={toggleShowPassword}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
                         </div>
                         {errors.password && (
                             <p className="text-sm text-destructive">{errors.password.message}</p>
                         )}
                     </div>
 
+                    {/* Remember Me & Forgot Password */}
                     <div className="flex items-center justify-between mt-1">
                         <div className="flex items-center space-x-2 cursor-pointer">
                             <Checkbox
                                 id="remember"
-                                checked={remember}
-                                onCheckedChange={(checked) => setValue("remember", checked as boolean)}
+                                checked={rememberValue}
+                                onCheckedChange={handleRememberChange}
                                 className="rounded border-slate-600 bg-slate-800 text-primary focus:ring-primary/50 w-4 h-4 data-[state=checked]:bg-primary data-[state=checked]:text-white border-none"
                             />
                             <Label
@@ -176,13 +299,13 @@ export default function LoginForm() {
                         </Link>
                     </div>
 
+                    {/* Submit Button */}
                     <Button
                         className="mt-2 w-full h-11 bg-primary hover:bg-primary/90 rounded-lg text-white text-sm font-bold tracking-wide transition-all shadow-[0_0_20px_rgba(37,106,244,0.3)] hover:shadow-[0_0_25px_rgba(37,106,244,0.5)]"
                         type="submit"
-                        disabled={isLoading}
+                        disabled={isLoading || !isValid}
                     >
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Log In
+                        {submitButtonContent}
                     </Button>
                 </form>
 
