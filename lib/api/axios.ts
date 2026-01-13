@@ -13,17 +13,25 @@ const api = axios.create({
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        // Extract error message from backend standardized response
-        const message = error.response?.data?.message || "An unexpected error occurred";
+        const responseData = error.response?.data;
         const status = error.response?.status;
 
-        // You could add global error logging or toast notifications here
-        // e.g. toast.error(message);
+        // Prefer common error fields in server responses: message, error, or an errors array
+        const message =
+            responseData?.message ||
+            responseData?.error ||
+            (Array.isArray(responseData?.errors) && responseData.errors[0]?.message) ||
+            error.message ||
+            "An unexpected error occurred";
 
-        // Construct a custom error object or pass through
+        // Optional: add global error logging or toast notifications here
+        // e.g. console.debug('API error:', { status, data: responseData });
+
+        // Construct a custom error with richer debug info
         const customError = new Error(message);
         (customError as any).status = status;
-        (customError as any).data = error.response?.data;
+        (customError as any).data = responseData;
+        (customError as any).original = error; // preserve original axios error
 
         return Promise.reject(customError);
     }

@@ -165,7 +165,7 @@ export default function LoginForm() {
     }
 
     return (
-        <Card className="w-full max-w-[440px] glass-card rounded-2xl p-8 shadow-2xl relative overflow-hidden border-none">
+        <Card className="w-full max-w-[440px]  glass-card rounded-2xl p-8 shadow-2xl relative overflow-hidden border-none">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
 
             <div className="flex flex-col gap-6">

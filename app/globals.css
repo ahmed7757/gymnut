@@ -136,7 +136,7 @@
 /* Custom Utilities from Design */
 @layer components {
   .glass-card {
-    background: rgba(30, 41, 59, 0.4);
+    background: rgba(38, 104, 209, 0.4);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);

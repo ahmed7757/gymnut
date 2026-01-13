@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useRegisterStore } from "@/stores/useRegisterStore";
 import Link from "next/link";
 
+
 import BasicInfoStep from "./register-steps/BasicInfoStep";
 import BodyStatsStep from "./register-steps/BodyStatsStep";
 import GoalsStep from "./register-steps/GoalsStep";

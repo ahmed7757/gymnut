@@ -19,6 +19,19 @@ export interface ApiResponse<T = any> {
   statusCode: number;
 }
 
+// --- Password helpers ---
+export interface PasswordStrength {
+  label: string;
+  color: string;
+  textColor: string;
+}
+
+export interface PasswordRequirement {
+  label: string;
+  valid: boolean;
+  icon?: string;
+}
+
 // --- Form States (Legacy/Existing) ---
 // Kept for backward compatibility if needed, but we might move to Shadcn Form logic
 export interface AuthFormState {
@@ -59,3 +72,4 @@ export interface AuthStoreActions {
   setShowPassword: (showPassword: boolean) => void;
   setRemember: (remember: boolean) => void;
 }
+
