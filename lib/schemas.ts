@@ -27,14 +27,18 @@ export const registerSchema = z
     message: "Passwords do not match",
   });
 
-export const loginSchema = z.object({
+// Form schema for React Hook Form (no transform)
+export const loginFormSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Password is required"),
-  remember: z.union([z.boolean(), z.string()]).transform((val) => {
-    if (typeof val === 'boolean') return val;
-    return val === 'true' || val === 'on';
-  }).optional(),
+  remember: z.union([z.boolean(), z.string()]).optional(),
 });
+
+// Transformed schema for auth processing
+export const loginSchema = loginFormSchema.transform((data) => ({
+  ...data,
+  remember: data.remember === true || data.remember === "true" || data.remember === "on",
+}));
 
 export const forgotPasswordSchema = z.object({
   email: emailSchema,

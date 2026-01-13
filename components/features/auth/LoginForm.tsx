@@ -15,11 +15,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 
-import { loginSchema } from "@/lib/schemas";
+import { loginFormSchema } from "@/lib/schemas";
 import { useLoginStore } from "@/stores/useLoginStore";
 import { signIn } from "next-auth/react";
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type LoginFormData = z.infer<typeof loginFormSchema>;
 
 export default function LoginForm() {
     const router = useRouter();
@@ -51,7 +51,7 @@ export default function LoginForm() {
         watch,
         formState: { errors, isValid },
     } = useForm<LoginFormData>({
-        resolver: zodResolver(loginSchema),
+        resolver: zodResolver(loginFormSchema),
         mode: "onChange",
         defaultValues: {
             email: "",
@@ -78,8 +78,11 @@ export default function LoginForm() {
                 setIsLoading(true);
                 clearError();
 
+                // Transform remember field (handle both boolean and string)
+                const rememberFlag = data.remember === true || data.remember === "true" || data.remember === "on";
+
                 // Persist email if remember me is checked
-                if (data.remember) {
+                if (rememberFlag) {
                     setPersistEmail(data.email);
                     setRemember(true);
                 } else {
@@ -90,7 +93,7 @@ export default function LoginForm() {
                 const result = await signIn("credentials", {
                     email: data.email,
                     password: data.password,
-                    remember: data.remember,
+                    remember: rememberFlag,
                     redirect: false,
                 });
 
